@@ -15,11 +15,11 @@ class RedisService {
     });
 
     this.redisClient.on("connect", () => {
-      console.log("Redis 연결 성공.");
+      console.log("[Redis] Redis 연결 성공.");
     });
 
     this.redisClient.on("error", (error) => {
-      console.log({ msg: "Redis 에러 ::", error });
+      console.error({ msg: "[Redis] Redis 에러 ::", error });
     });
   }
 
