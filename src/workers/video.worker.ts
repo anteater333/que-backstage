@@ -5,6 +5,7 @@
 import { Job, Processor, Worker } from "bullmq";
 import redisService from "../services/redis.service";
 import { db } from "../services/db.service";
+import { processVideoPipeline } from "../processors/video.processor";
 
 const VIDEO_QUEUE_NAME = "video-processing";
 const VIDEO_QUEUE_JOB_NAME = "process-video";
@@ -27,9 +28,8 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
       .where("id", "=", stageId)
       .execute();
 
-    // TODO: 프로세서 로직
     console.log(`[Job ${job.id}] 작업 시작: ${filePath}`);
-    await new Promise((resolve) => setTimeout(resolve, 5000)); // TEMP
+    const result = await processVideoPipeline(stageId, filePath);
 
     await db
       .updateTable("stages")
@@ -50,8 +50,6 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
     throw error;
   }
 };
-
-
 
 export default new Worker(VIDEO_QUEUE_NAME, workerProcessor, {
   connection: redisService,
