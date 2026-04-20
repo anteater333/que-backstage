@@ -1,14 +1,15 @@
 import Redis from "ioredis";
+import { CONFIG } from "../config";
 
 class RedisService {
   private redisClient;
 
   constructor() {
     this.redisClient = new Redis({
-      host: process.env.REDIS_HOST,
-      port: Number(process.env.REDIS_PORT),
-      username: process.env.REDIS_USERNAME,
-      password: process.env.REDIS_PASSWORD,
+      host: CONFIG.REDIS.HOST,
+      port: CONFIG.REDIS.PORT,
+      username: CONFIG.REDIS.USER,
+      password: CONFIG.REDIS.PASS,
       db: 0,
       // BullMQ 호환 설정
       maxRetriesPerRequest: null,
