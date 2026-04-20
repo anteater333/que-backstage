@@ -1,17 +1,20 @@
 import "dotenv/config";
 import videoWorker from "./workers/video.worker";
 import { Job } from "bullmq";
+import { ffmpegHealthCheck } from "./utils/ffmpeg";
 
 /** que backstage 공장 엔트리포인트 */
 async function bootstrap() {
   console.log(`[Initiated] Que Backstage 프로세스 실행`);
+
+  await ffmpegHealthCheck();
 
   // 워커 공통 핸들러 정의
   const handleCompleted = (job: Job) => {
     console.log(`[Job ${job.id}] ✅`);
   };
   const handleFailed = (job: Job | undefined, err: Error) => {
-    console.error(`[Job ${job?.id} ❌]`, err.message);
+    console.error(`[Job ${job?.id}] ❌`, err.message);
   };
   const handleError = (err: Error) => {
     console.error(`[Worker Error]`, err);
