@@ -3,6 +3,13 @@ import path from "node:path";
 import { CONFIG } from "../config";
 import { mkdir } from "node:fs/promises";
 
+/** 지원 화질 */
+const resolutions = [
+  { name: "360p", width: 640, height: 360, bitrate: "800k" },
+  { name: "720p", width: 1280, height: 720, bitrate: "2500k" },
+  { name: "1080p", width: 1920, height: 1080, bitrate: "5000k" },
+];
+
 /** 비디오 가공 파이프라인 실행 */
 export const processVideoPipeline = async (
   stageId: string,
@@ -10,21 +17,20 @@ export const processVideoPipeline = async (
 ) => {
   console.log("파이프라인 개발 중: ", stageId, rawFilePath);
 
+  console.log("메타데이터 추출 테스트");
+  const metadata = await getVideoMetadata(rawFilePath);
+
+  console.log(metadata);
+
   console.log("썸네일 추출 테스트");
   const results = await extractThumbnails(
     rawFilePath,
     CONFIG.STORAGE.OUTPUT_PATH,
     {
-      orientation: "landscape",
+      orientation: metadata.orientation,
     },
   );
   console.log("🥕 결과 :: ", results);
-
-  const resolutions = [
-    { name: "360p", width: 640, height: 360, bitrate: "800k" },
-    { name: "720p", width: 1280, height: 720, bitrate: "2500k" },
-    { name: "1080p", width: 1920, height: 1080, bitrate: "5000k" },
-  ];
 
   console.log("영상 변환 테스트");
   for (const res of resolutions) {
@@ -34,7 +40,61 @@ export const processVideoPipeline = async (
 };
 
 type VideoOrientation = "landscape" | "portrait" | "square";
-/** TODO #0 필요 영상 메타데이터 추출 (ex. orientation 값 등) */
+type VideoMetadata = {
+  width: number;
+  height: number;
+  duration: number;
+  orientation: VideoOrientation;
+  bitrate: number;
+  fps: number;
+  hasAudio: boolean;
+};
+/** 원본 영상 메타데이터 추출 */
+export const getVideoMetadata = async (
+  input: string,
+): Promise<VideoMetadata> => {
+  return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(input, (err, metadata) => {
+      if (err) return reject(err);
+
+      const stream = metadata.streams.find((s) => s.codec_type === "video");
+      const audioStream = metadata.streams.find(
+        (s) => s.codec_type === "audio",
+      );
+
+      if (!stream)
+        return reject(new Error("비디오 스트림을 찾을 수 없습니다."));
+
+      /** 영상 촬영 시 기기 회전 상태 정보 */
+      const rotation =
+        (stream.side_data_list?.find((d: { rotation: unknown }) => d.rotation)
+          ?.rotation as number) || 0;
+
+      let width = stream.width || 0;
+      let height = stream.height || 0;
+
+      // 회전된 영상은 가로/세로를 바꿔서 판단
+      if (Math.abs(rotation) === 90 || Math.abs(rotation) === 270) {
+        [width, height] = [height, width];
+      }
+
+      // 비율 판단
+      let orientation: VideoOrientation = "square";
+      if (width > height) orientation = "landscape";
+      else if (height > width) orientation = "portrait";
+
+      resolve({
+        width,
+        height,
+        duration: metadata.format.duration || 0,
+        orientation,
+        bitrate: metadata.format.bit_rate || 0,
+        fps: eval(stream.r_frame_rate || "0"),
+        hasAudio: !!audioStream,
+      });
+    });
+  });
+};
 
 /**
  * 해상도별 HLS 변환
@@ -98,18 +158,19 @@ export const extractThumbnails = (
     orientation: VideoOrientation;
   },
 ) => {
-  const configs = [
+  /** 지원 썸네일 크기 */
+  const thumbnailResolutions = [
     { label: "large", size: 1280 },
     { label: "medium", size: 640 },
   ];
 
-  const tasks = configs.map((config) => {
+  const tasks = thumbnailResolutions.map((resolution) => {
     return new Promise<string>((resolve, reject) => {
-      const filename = `thumbnail_${config.label}.webp`;
+      const filename = `thumbnail_${resolution.label}.webp`;
       const sizeStr =
         metadata.orientation === "landscape"
-          ? `${config.size}x?`
-          : `?x${config.size}`;
+          ? `${resolution.size}x?`
+          : `?x${resolution.size}`;
 
       ffmpeg(input)
         .screenshots({
