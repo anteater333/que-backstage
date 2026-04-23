@@ -1,10 +1,28 @@
 import ffmpeg from "fluent-ffmpeg";
 import path from "node:path";
 import { CONFIG } from "../config";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
+
+type VideoOrientation = "landscape" | "portrait" | "square";
+type VideoMetadata = {
+  width: number;
+  height: number;
+  duration: number;
+  orientation: VideoOrientation;
+  bitrate: number;
+  fps: number;
+  hasAudio: boolean;
+};
+
+type Resolution = {
+  name: string;
+  width: number;
+  height: number;
+  bitrate: string;
+};
 
 /** 지원 화질 */
-const resolutions = [
+const resolutions: Resolution[] = [
   { name: "360p", width: 640, height: 360, bitrate: "800k" },
   { name: "720p", width: 1280, height: 720, bitrate: "2500k" },
   { name: "1080p", width: 1920, height: 1080, bitrate: "5000k" },
@@ -37,18 +55,11 @@ export const processVideoPipeline = async (
     console.log(`🥕 ${res.name} 인코딩 시작 ---`);
     await transcodeToHLS(rawFilePath, CONFIG.STORAGE.OUTPUT_PATH, { res });
   }
+
+  console.log("마스터 플레이리스트 추출 테스트");
+  await createMasterPlaylist(CONFIG.STORAGE.OUTPUT_PATH, resolutions);
 };
 
-type VideoOrientation = "landscape" | "portrait" | "square";
-type VideoMetadata = {
-  width: number;
-  height: number;
-  duration: number;
-  orientation: VideoOrientation;
-  bitrate: number;
-  fps: number;
-  hasAudio: boolean;
-};
 /** 원본 영상 메타데이터 추출 */
 export const getVideoMetadata = async (
   input: string,
@@ -103,12 +114,7 @@ export const transcodeToHLS = async (
   input: string,
   baseDir: string,
   metadata: {
-    res: {
-      name: string;
-      width: number;
-      height: number;
-      bitrate: string;
-    };
+    res: Resolution;
   },
 ) => {
   const resDir = path.join(baseDir, metadata.res.name);
@@ -189,4 +195,39 @@ export const extractThumbnails = (
 };
 
 /** TODO #3 마스터 m3u8 파일 생성 */
+export const createMasterPlaylist = async (
+  baseDir: string,
+  resolutions: Resolution[],
+) => {
+  // HLS 헤더 설정
+  // 표준 규격에 맞는 헤더 시작
+  let content = "#EXTM3U\n";
+  // 가장 범용성이 높은 버전 3 사용
+  content += "#EXT-X-VERSION:3\n\n";
+
+  for (const res of resolutions) {
+    /** 비트레이트 숫자 추출 */
+    const bps = parseInt(res.bitrate.replace("k", "")) * 1000;
+
+    const totalBandwidth = bps + 320000;
+
+    // 화질 정보 메타데이터 작성
+    // BANDWIDTH: 초당 최대 데이터 양
+    // RESOLUTION: 가로x세로 해상도
+    // CODECS: H.264 (avc1) + AAC (mp4a) 표준 코덱 명시
+    content +=
+      `#EXT-X-STREAM-INF:BANDWIDTH=${totalBandwidth}` +
+      `,RESOLUTION=${res.width}x${res.height}` +
+      `,NAME="${res.name}"` +
+      `,CODECS="avc1.640028,mp4a.40.2"\n`;
+
+    // 해당 화질의 실제 경로
+    content += `${res.name}/index.m3u8\n\n`;
+  }
+
+  const masterPath = path.join(baseDir, "master.m3u8");
+  await writeFile(masterPath, content, "utf8");
+
+  return masterPath;
+};
 
