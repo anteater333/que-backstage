@@ -39,31 +39,27 @@ export const processVideoPipeline = async (
 ) => {
   const logPrefix = `[Job ${jobId}/${stageId}]`;
   console.log(logPrefix, "가공 파이프라인 실행");
+
+  const outputPath = path.join(CONFIG.STORAGE.OUTPUT_PATH, stageId);
+
   console.log(logPrefix, "Step #1 메타데이터 추출");
   const metadata = await getVideoMetadata(rawFilePath);
   console.log(logPrefix, `메타데이터 추출 완료: ${JSON.stringify(metadata)}`);
 
   console.log(logPrefix, "Step #2 썸네일 추출");
-  const thumbs = await extractThumbnails(
-    rawFilePath,
-    CONFIG.STORAGE.OUTPUT_PATH,
-    {
-      orientation: metadata.orientation,
-    },
-  );
+  const thumbs = await extractThumbnails(rawFilePath, outputPath, {
+    orientation: metadata.orientation,
+  });
   console.log(logPrefix, `썸네일 추출 완료: ${thumbs}`);
 
   console.log(logPrefix, "Step #3 원본 -> HLS 변환");
   for (const res of resolutions) {
     console.log(logPrefix, `${res.name} 시작  --- `);
-    await transcodeToHLS(rawFilePath, CONFIG.STORAGE.OUTPUT_PATH, { res });
+    await transcodeToHLS(rawFilePath, outputPath, { res });
   }
 
   console.log(logPrefix, "Step #4 마스터 플레이리스트 추출");
-  const finalResult = await createMasterPlaylist(
-    CONFIG.STORAGE.OUTPUT_PATH,
-    resolutions,
-  );
+  const finalResult = await createMasterPlaylist(outputPath, resolutions);
 
   return finalResult;
 };
