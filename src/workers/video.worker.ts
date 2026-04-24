@@ -29,7 +29,9 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
       .execute();
 
     console.log(`[Job ${job.id}] 작업 시작: ${filePath}`);
-    const result = await processVideoPipeline(stageId, filePath);
+    const result = await processVideoPipeline(stageId, filePath, job.id || "");
+
+    console.log("파이프라인 프로세스 성공", result);
 
     await db
       .updateTable("stages")

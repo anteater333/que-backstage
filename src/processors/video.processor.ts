@@ -28,36 +28,44 @@ const resolutions: Resolution[] = [
   { name: "1080p", width: 1920, height: 1080, bitrate: "5000k" },
 ];
 
-/** 비디오 가공 파이프라인 실행 */
+/**
+ * 비디오 가공 파이프라인 실행
+ * @returns 가공 파일 출력 경로
+ **/
 export const processVideoPipeline = async (
   stageId: string,
   rawFilePath: string,
+  jobId: string,
 ) => {
-  console.log("파이프라인 개발 중: ", stageId, rawFilePath);
-
-  console.log("메타데이터 추출 테스트");
+  const logPrefix = `[Job ${jobId}/${stageId}]`;
+  console.log(logPrefix, "가공 파이프라인 실행");
+  console.log(logPrefix, "Step #1 메타데이터 추출");
   const metadata = await getVideoMetadata(rawFilePath);
+  console.log(logPrefix, `메타데이터 추출 완료: ${JSON.stringify(metadata)}`);
 
-  console.log(metadata);
-
-  console.log("썸네일 추출 테스트");
-  const results = await extractThumbnails(
+  console.log(logPrefix, "Step #2 썸네일 추출");
+  const thumbs = await extractThumbnails(
     rawFilePath,
     CONFIG.STORAGE.OUTPUT_PATH,
     {
       orientation: metadata.orientation,
     },
   );
-  console.log("🥕 결과 :: ", results);
+  console.log(logPrefix, `썸네일 추출 완료: ${thumbs}`);
 
-  console.log("영상 변환 테스트");
+  console.log(logPrefix, "Step #3 원본 -> HLS 변환");
   for (const res of resolutions) {
-    console.log(`🥕 ${res.name} 인코딩 시작 ---`);
+    console.log(logPrefix, `${res.name} 시작  --- `);
     await transcodeToHLS(rawFilePath, CONFIG.STORAGE.OUTPUT_PATH, { res });
   }
 
-  console.log("마스터 플레이리스트 추출 테스트");
-  await createMasterPlaylist(CONFIG.STORAGE.OUTPUT_PATH, resolutions);
+  console.log(logPrefix, "Step #4 마스터 플레이리스트 추출");
+  const finalResult = await createMasterPlaylist(
+    CONFIG.STORAGE.OUTPUT_PATH,
+    resolutions,
+  );
+
+  return finalResult;
 };
 
 /** 원본 영상 메타데이터 추출 */
