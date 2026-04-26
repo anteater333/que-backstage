@@ -1,0 +1,14 @@
+services:
+  worker:
+    build:
+      context: .
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - 
+
+networks:
+  que-network:
+    external: true
+
