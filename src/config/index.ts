@@ -27,7 +27,7 @@ export const CONFIG = {
   REDIS: {
     HOST: required("REDIS_HOST", { defaultValue: "localhost" }),
     PORT: Number(required("REDIS_PORT", { defaultValue: "6379" })),
-    USER: required("REDIS_USERNAME"),
+    USER: required("REDIS_USERNAME", { isOptional: true }),
     PASS: required("REDIS_PASSWORD", { isOptional: true }),
   },
 

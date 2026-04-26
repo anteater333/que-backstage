@@ -15,12 +15,12 @@ FROM node:22-alpine
 WORKDIR /app
 
 # ffmpeg 설치
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache ffmpeg
 
 # 빌드 결과물 및 의존성 복사
-COPY --from:builder /app/dist ./dist
-COPY --from:builder /app/node_modules ./node_modules
-COPY --from:builder /app/package.json ./package.json
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
 # 환경 변수 설정
 ENV NODE_ENV=production

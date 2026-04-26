@@ -2,13 +2,27 @@ services:
   worker:
     build:
       context: .
+      dockerfile: Dockerfile
+    container_name: que-backstage-worker
     restart: always
     env_file:
       - .env
+    environment:
+      - NODE_ENV=production
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
-      - 
+      - que-media:/app/media
+    networks:
+      - que-network
 
 networks:
   que-network:
     external: true
 
+volumes:
+  que-media:
+    external: true
