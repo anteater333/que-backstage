@@ -198,7 +198,7 @@ export const extractThumbnails = (
   return Promise.all(tasks);
 };
 
-/** TODO #3 마스터 m3u8 파일 생성 */
+/** 마스터 m3u8 파일 생성 */
 export const createMasterPlaylist = async (
   baseDir: string,
   resolutions: Resolution[],
@@ -234,4 +234,3 @@ export const createMasterPlaylist = async (
 
   return masterPath;
 };
-
