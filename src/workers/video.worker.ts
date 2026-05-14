@@ -54,6 +54,5 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
 };
 
 export default new Worker(VIDEO_QUEUE_NAME, workerProcessor, {
-  connection: redisService,
+  connection: redisService.getClient(),
 });
-
