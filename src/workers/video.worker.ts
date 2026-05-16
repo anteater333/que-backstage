@@ -6,6 +6,7 @@ import { Job, Processor, Worker } from "bullmq";
 import redisService from "../services/redis.service";
 import { db } from "../services/db.service";
 import { processVideoPipeline } from "../processors/video.processor";
+import { publishStatus } from "../services/stage.service";
 
 const VIDEO_QUEUE_NAME = "video-processing";
 const VIDEO_QUEUE_JOB_NAME = "process-video";
@@ -38,6 +39,8 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
       .set({ status: "DONE" })
       .where("id", "=", stageId)
       .execute();
+
+    await publishStatus(stageId, "DONE");
 
     console.log(`[Job ${job.id}] 작업 완료`);
   } catch (error) {
