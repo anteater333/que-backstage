@@ -32,15 +32,17 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
     console.log(`[Job ${job.id}] 작업 시작: ${filePath}`);
     const result = await processVideoPipeline(stageId, filePath, job.id || "");
 
-    console.log("파이프라인 프로세스 성공", result);
+    console.log(`[Job ${job.id}] 파이프라인 프로세스 성공`, result);
 
     await db
       .updateTable("stages")
       .set({ status: "DONE" })
       .where("id", "=", stageId)
       .execute();
+    console.log(`[Job ${job.id}] Status DB 저장 완료`);
 
     await publishStatus(stageId, "DONE");
+    console.log(`[Job ${job.id}] Status Publish 완료`);
 
     console.log(`[Job ${job.id}] 작업 완료`);
   } catch (error) {
