@@ -54,6 +54,8 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
       .where("id", "=", stageId)
       .execute();
 
+    await publishStatus(stageId, "FAILED");
+
     throw error;
   }
 };
