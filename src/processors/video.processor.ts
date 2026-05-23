@@ -42,6 +42,9 @@ export const processVideoPipeline = async (
 
   const outputPath = path.join(CONFIG.STORAGE.OUTPUT_PATH, stageId);
 
+  // 폴더 먼저 생성
+  await mkdir(outputPath, { recursive: true });
+
   console.log(logPrefix, "Step #1 메타데이터 추출");
   const metadata = await getVideoMetadata(rawFilePath);
   console.log(logPrefix, `메타데이터 추출 완료: ${JSON.stringify(metadata)}`);
