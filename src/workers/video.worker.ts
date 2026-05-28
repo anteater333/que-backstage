@@ -29,6 +29,7 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
       .where("id", "=", stageId)
       .execute();
 
+    await publishStatus(stageId, "PROCESSING");
     console.log(`[Job ${job.id}] 작업 시작: ${filePath}`);
     const result = await processVideoPipeline(stageId, filePath, job.id || "");
 
