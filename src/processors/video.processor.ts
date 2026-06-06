@@ -42,6 +42,9 @@ export const processVideoPipeline = async (
 
   const outputPath = path.join(CONFIG.STORAGE.OUTPUT_PATH, stageId);
 
+  // 폴더 먼저 생성
+  await mkdir(outputPath, { recursive: true });
+
   console.log(logPrefix, "Step #1 메타데이터 추출");
   const metadata = await getVideoMetadata(rawFilePath);
   console.log(logPrefix, `메타데이터 추출 완료: ${JSON.stringify(metadata)}`);
@@ -198,7 +201,7 @@ export const extractThumbnails = (
   return Promise.all(tasks);
 };
 
-/** TODO #3 마스터 m3u8 파일 생성 */
+/** 마스터 m3u8 파일 생성 */
 export const createMasterPlaylist = async (
   baseDir: string,
   resolutions: Resolution[],
@@ -234,4 +237,3 @@ export const createMasterPlaylist = async (
 
   return masterPath;
 };
-

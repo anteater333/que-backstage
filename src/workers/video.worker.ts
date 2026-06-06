@@ -6,6 +6,7 @@ import { Job, Processor, Worker } from "bullmq";
 import redisService from "../services/redis.service";
 import { db } from "../services/db.service";
 import { processVideoPipeline } from "../processors/video.processor";
+import { publishStatus } from "../services/stage.service";
 
 const VIDEO_QUEUE_NAME = "video-processing";
 const VIDEO_QUEUE_JOB_NAME = "process-video";
@@ -28,16 +29,21 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
       .where("id", "=", stageId)
       .execute();
 
+    await publishStatus(stageId, "PROCESSING");
     console.log(`[Job ${job.id}] 작업 시작: ${filePath}`);
     const result = await processVideoPipeline(stageId, filePath, job.id || "");
 
-    console.log("파이프라인 프로세스 성공", result);
+    console.log(`[Job ${job.id}] 파이프라인 프로세스 성공`, result);
 
     await db
       .updateTable("stages")
       .set({ status: "DONE" })
       .where("id", "=", stageId)
       .execute();
+    console.log(`[Job ${job.id}] Status DB 저장 완료`);
+
+    await publishStatus(stageId, "DONE");
+    console.log(`[Job ${job.id}] Status Publish 완료`);
 
     console.log(`[Job ${job.id}] 작업 완료`);
   } catch (error) {
@@ -49,11 +55,12 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
       .where("id", "=", stageId)
       .execute();
 
+    await publishStatus(stageId, "FAILED");
+
     throw error;
   }
 };
 
 export default new Worker(VIDEO_QUEUE_NAME, workerProcessor, {
-  connection: redisService,
+  connection: redisService.getClient(),
 });
-
