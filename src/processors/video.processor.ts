@@ -3,7 +3,7 @@ import path from "node:path";
 import { CONFIG } from "../config";
 import { mkdir, writeFile } from "node:fs/promises";
 
-type VideoOrientation = "landscape" | "portrait" | "square";
+export type VideoOrientation = "LANDSCAPE" | "PORTRAIT" | "SQUARE";
 type VideoMetadata = {
   width: number;
   height: number;
@@ -36,7 +36,7 @@ export const processVideoPipeline = async (
   stageId: string,
   rawFilePath: string,
   jobId: string,
-) => {
+): Promise<[string, VideoMetadata]> => {
   const logPrefix = `[Job ${jobId}/${stageId}]`;
   console.log(logPrefix, "가공 파이프라인 실행");
 
@@ -64,7 +64,7 @@ export const processVideoPipeline = async (
   console.log(logPrefix, "Step #4 마스터 플레이리스트 추출");
   const finalResult = await createMasterPlaylist(outputPath, resolutions);
 
-  return finalResult;
+  return [finalResult, metadata];
 };
 
 /** 원본 영상 메타데이터 추출 */
@@ -97,9 +97,9 @@ export const getVideoMetadata = async (
       }
 
       // 비율 판단
-      let orientation: VideoOrientation = "square";
-      if (width > height) orientation = "landscape";
-      else if (height > width) orientation = "portrait";
+      let orientation: VideoOrientation = "SQUARE";
+      if (width > height) orientation = "LANDSCAPE";
+      else if (height > width) orientation = "PORTRAIT";
 
       resolve({
         width,
@@ -181,7 +181,7 @@ export const extractThumbnails = (
     return new Promise<string>((resolve, reject) => {
       const filename = `thumbnail_${resolution.label}.webp`;
       const sizeStr =
-        metadata.orientation === "landscape"
+        metadata.orientation === "LANDSCAPE"
           ? `${resolution.size}x?`
           : `?x${resolution.size}`;
 

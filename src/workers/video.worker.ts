@@ -31,13 +31,21 @@ const workerProcessor: Processor = async (job: Job<VideoJobType>) => {
 
     await publishStatus(stageId, "PROCESSING");
     console.log(`[Job ${job.id}] 작업 시작: ${filePath}`);
-    const result = await processVideoPipeline(stageId, filePath, job.id || "");
+    const [result, metadata] = await processVideoPipeline(
+      stageId,
+      filePath,
+      job.id || "",
+    );
 
     console.log(`[Job ${job.id}] 파이프라인 프로세스 성공`, result);
 
     await db
       .updateTable("stages")
-      .set({ status: "DONE" })
+      .set({
+        status: "DONE",
+        length: Math.round(Number(metadata.duration)),
+        orientation: metadata.orientation,
+      })
       .where("id", "=", stageId)
       .execute();
     console.log(`[Job ${job.id}] Status DB 저장 완료`);

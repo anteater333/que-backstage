@@ -1,5 +1,6 @@
 // Stage DB 접근 서비스 관련 코드
 
+import { VideoOrientation } from "../processors/video.processor";
 import redisService from "./redis.service";
 
 export interface StageTable {
@@ -12,6 +13,8 @@ export interface StageTable {
     | "PROCESSING"
     | "DONE"
     | "FAILED";
+  length: number;
+  orientation: VideoOrientation;
 }
 
 export interface StageStatusEvent {
